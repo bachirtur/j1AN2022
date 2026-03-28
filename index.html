@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAC NSI 2022 - Évaluation Interactive</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--bg:#f0f2f5;--card:#fff;--primary:#0984e3;--primary-dark:#0773c5;--success:#00b894;--danger:#d63031;--warning:#fdcb6e;--text:#2d3436;--text-light:#636e72;--border:#dfe6e9;--code-bg:#282a36;--radius:13px;--shadow:0 4px 22px rgba(0,0,0,.07)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.header{background:linear-gradient(135deg,#0984e3,#6c5ce7);color:#fff;padding:16px 26px;position:sticky;top:0;z-index:100;box-shadow:0 4px 18px rgba(9,132,227,.35)}
+.header-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.header h1{font-size:1.2rem;font-weight:700}
+.header .subtitle{opacity:.85;font-size:.78rem;margin-top:2px}
+.timer-box{background:rgba(255,255,255,.17);border-radius:10px;padding:8px 18px;text-align:center;backdrop-filter:blur(6px)}
+.timer-box .time{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums}
+.timer-box .label{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;opacity:.8}
+.timer-box.warning .time{color:#fdcb6e;animation:pulse 1s infinite}
+.timer-box.danger .time{color:#ff7675;animation:pulse .5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.save-indicator{font-size:.7rem;opacity:.8;display:flex;align-items:center;gap:4px}
+.save-indicator .dot{width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block}
+.info-banner{background:#fff3cd;border-bottom:1px solid #ffc107;padding:8px 20px;font-size:.82rem;text-align:center;color:#856404}
+.nav-tabs{display:flex;gap:0;background:#fff;border-bottom:2px solid var(--border);padding:0 12px;overflow-x:auto;box-shadow:var(--shadow)}
+.nav-tab{padding:11px 16px;cursor:pointer;border:none;background:none;font-size:.8rem;font-weight:600;color:var(--text-light);position:relative;transition:.3s;white-space:nowrap}
+.nav-tab:hover{color:var(--primary)}
+.nav-tab.active{color:var(--primary)}
+.nav-tab.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:3px;background:var(--primary);border-radius:3px 3px 0 0}
+.nav-tab .badge{background:var(--primary);color:#fff;border-radius:20px;padding:2px 7px;font-size:.65rem;margin-left:4px}
+.nav-tab.done .badge{background:var(--success)}
+.container{max-width:1050px;margin:0 auto;padding:16px}
+.exercise-panel{display:none}
+.exercise-panel.active{display:block}
+.exercise-header{background:var(--card);border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:var(--shadow);border-left:5px solid var(--primary)}
+.exercise-header h2{font-size:1.15rem;color:var(--primary);margin-bottom:3px}
+.exercise-header .theme{font-style:italic;color:var(--text-light);font-size:.84rem}
+.exercise-header .points-badge{display:inline-block;background:linear-gradient(135deg,var(--primary),#6c5ce7);color:#fff;padding:3px 12px;border-radius:18px;font-size:.75rem;font-weight:600;margin-top:6px}
+.context-box{background:var(--card);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;box-shadow:var(--shadow);font-size:.84rem;border:1px solid var(--border)}
+.context-box code{background:#e9ecef;padding:1px 5px;border-radius:4px;font-family:'Fira Code',monospace;font-size:.8rem}
+.context-box pre{background:var(--code-bg);color:#f8f8f2;padding:12px;border-radius:8px;overflow-x:auto;font-size:.8rem;margin:6px 0}
+.context-box pre code{background:none;color:inherit}
+.context-box table{border-collapse:collapse;width:100%;margin:6px 0;font-size:.78rem}
+.context-box th,.context-box td{border:1px solid #ccc;padding:4px 7px;text-align:left}
+.context-box th{background:#e9ecef;font-weight:600}
+.question-card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--shadow);transition:border-color .3s;border:2px solid transparent}
+.question-card:hover{border-color:rgba(9,132,227,.12)}
+.question-card.correct{border-color:var(--success);background:#f0fff4}
+.question-card.incorrect{border-color:var(--danger);background:#fff5f5}
+.question-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
+.question-number{background:var(--primary);color:#fff;min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;flex-shrink:0;padding:0 5px}
+.question-text{flex:1;font-size:.87rem}
+.question-text code{background:#e9ecef;padding:1px 5px;border-radius:4px;font-family:'Fira Code',monospace;font-size:.8rem}
+.question-text pre{background:var(--code-bg);color:#f8f8f2;padding:9px;border-radius:7px;overflow-x:auto;font-size:.78rem;margin:5px 0}
+.question-text pre code{background:none;color:inherit}
+.question-points{background:#e9ecef;color:var(--text-light);padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:600;white-space:nowrap}
+.answer-area{margin-top:8px}
+.answer-area textarea{width:100%;min-height:65px;padding:9px;border:2px solid var(--border);border-radius:7px;font-size:.85rem;resize:vertical;font-family:inherit;transition:border-color .3s}
+.answer-area textarea:focus{outline:none;border-color:var(--primary)}
+.code-editor-wrapper{border:2px solid var(--border);border-radius:7px;overflow:hidden;transition:border-color .3s}
+.code-editor-wrapper:focus-within{border-color:var(--primary)}
+.code-editor-wrapper .CodeMirror{height:auto;min-height:80px;font-size:.8rem}
+.correction-box{margin-top:10px;padding:12px;border-radius:7px;display:none}
+.correction-box.show{display:block}
+.correction-box.correct-box{background:#ecfdf5;border:1px solid #a7f3d0}
+.correction-box.incorrect-box{background:#fef2f2;border:1px solid #fecaca}
+.correction-box .result-icon{font-size:.9rem;font-weight:700;margin-bottom:4px}
+.correction-box h4{font-size:.76rem;color:var(--text-light);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.correction-box .expected{background:#f0fdf4;padding:8px;border-radius:5px;font-family:'Fira Code',monospace;font-size:.76rem;white-space:pre-wrap;margin:3px 0;border:1px solid #bbf7d0}
+.correction-box .explanation{font-size:.8rem;color:var(--text-light);margin-top:6px;padding:8px;background:rgba(9,132,227,.04);border-radius:5px;border-left:3px solid var(--primary)}
+.submit-section{text-align:center;padding:28px 18px;margin-top:14px}
+.btn{padding:10px 22px;border:none;border-radius:7px;font-size:.88rem;font-weight:600;cursor:pointer;transition:.3s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-2px);box-shadow:0 5px 18px rgba(9,132,227,.3)}
+.btn-success{background:var(--success);color:#fff}
+.btn-outline{background:transparent;border:2px solid var(--primary);color:var(--primary)}
+.btn-outline:hover{background:var(--primary);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.results-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:200;justify-content:center;align-items:center;padding:20px}
+.results-overlay.show{display:flex}
+.results-modal{background:#fff;border-radius:18px;padding:30px;max-width:520px;width:100%;text-align:center;max-height:90vh;overflow-y:auto;box-shadow:0 22px 55px rgba(0,0,0,.3)}
+.results-modal .grade-circle{width:125px;height:125px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:14px auto;font-size:1.9rem;font-weight:800;color:#fff}
+.grade-excellent{background:linear-gradient(135deg,#00b894,#00a381)}
+.grade-bien{background:linear-gradient(135deg,#0984e3,#74b9ff)}
+.grade-assez-bien{background:linear-gradient(135deg,#fdcb6e,#e17055)}
+.grade-passable{background:linear-gradient(135deg,#ffeaa7,#fab1a0)}
+.grade-insuffisant{background:linear-gradient(135deg,#d63031,#e17055)}
+.grade-circle small{font-size:.72rem;font-weight:400;opacity:.9}
+.results-modal .appreciation{font-size:1.05rem;font-weight:700;margin:6px 0}
+.results-modal .percentage{font-size:.88rem;color:var(--text-light)}
+.exercise-scores{text-align:left;margin:14px 0;padding:11px;background:#f8f9fa;border-radius:9px}
+.exercise-scores .score-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.exercise-scores .score-row:last-child{border:none}
+.progress-bar{height:6px;background:#e9ecef;border-radius:4px;overflow:hidden;margin-top:3px}
+.progress-bar .fill{height:100%;border-radius:4px;transition:width .8s ease}
+.btn-group{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.locked .answer-area textarea,.locked .CodeMirror{opacity:.7;pointer-events:none}
+@media(max-width:768px){.header-top{flex-direction:column;text-align:center}.nav-tab{padding:8px 10px;font-size:.72rem}.container{padding:8px}}
+</style>
+</head>
+<body>
+<div class="header"><div class="header-top">
+<div><h1>🏖️ BAC NSI 2022 — Session Jour 1</h1><div class="subtitle">Numérique et Sciences Informatiques — 5 exercices, 3 au choix</div></div>
+<div class="timer-box" id="timerBox"><div class="label">⏱ Temps restant</div><div class="time" id="timerDisplay">03:30:00</div></div>
+<div><div class="save-indicator" id="saveIndicator"><span class="dot"></span> Auto-save</div>
+<button class="btn btn-outline" style="margin-top:4px;padding:4px 10px;font-size:.68rem;color:#fff;border-color:rgba(255,255,255,.4)" onclick="resetExam()">🔄 Reset</button></div>
+</div></div>
+<div class="info-banner">⚠️ <strong>Choisissez 3 exercices parmi les 5.</strong> Seuls les 3 meilleurs scores seront retenus (note /12 → /20).</div>
+<div class="nav-tabs">
+<button class="nav-tab active" data-tab="0" onclick="switchTab(0)">🏖️ Ex.1 <span class="badge">4pts</span></button>
+<button class="nav-tab" data-tab="1" onclick="switchTab(1)">🌐 Ex.2 <span class="badge">4pts</span></button>
+<button class="nav-tab" data-tab="2" onclick="switchTab(2)">🌳 Ex.3 <span class="badge">4pts</span></button>
+<button class="nav-tab" data-tab="3" onclick="switchTab(3)">🧬 Ex.4 <span class="badge">4pts</span></button>
+<button class="nav-tab" data-tab="4" onclick="switchTab(4)">🌡️ Ex.5 <span class="badge">4pts</span></button>
+</div>
+
+<div class="container" id="mainContainer">
+
+<!-- ===== EXERCICE 1 ===== -->
+<div class="exercise-panel active" id="panel0">
+<div class="exercise-header"><h2>Exercice 1 — Vacances sportives</h2><div class="theme">Bases de données relationnelles et SQL</div><span class="points-badge">4 points</span></div>
+<div class="context-box">
+<p>L'entreprise "Vacances autrement" propose des séjours sportifs d'une semaine.</p>
+<pre><code>Station(nomStation, ville, region)
+Sport(nomSport, nomStation#, prix)
+Client(cID, nom, prenom, mail)
+Sejour(cID#, semaine, annee, nomStation#, nomSport#)</code></pre>
+<table><tr><th>Station</th><th>Sport</th><th>Client</th></tr>
+<tr><td>La tramontane catalane, Leucate, Occitanie</td><td>planche à voile, La tramontane catalane, 1200</td><td>1, GENEREUX, Eric</td></tr>
+<tr><td>La baie sauvage, La Torche, Bretagne</td><td>kitesurf, La tramontane catalane, 1100</td><td>2, PIERRE, Daniel</td></tr>
+<tr><td>La pinède, Calvi, Corse</td><td>plongée, La baie sauvage, 950</td><td>3, JOLY, Emilie</td></tr></table>
+</div>
+
+<div class="question-card" id="card_e1q1"><div class="question-top"><div class="question-number">1a</div><div class="question-text">Donner la clé primaire et les éventuelles clés étrangères de la relation <code>Sport</code>.</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e1q1" placeholder="Clé primaire et clés étrangères..."></textarea></div><div class="correction-box" id="corr_e1q1"></div></div>
+
+<div class="question-card" id="card_e1q2"><div class="question-top"><div class="question-number">1b</div><div class="question-text">Citer une contrainte d'intégrité de domaine, une contrainte d'intégrité de relation et une contrainte d'intégrité de référence que doivent respecter les données de <code>Sport</code>.</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e1q2" placeholder="3 contraintes d'intégrité..." style="min-height:90px"></textarea></div><div class="correction-box" id="corr_e1q2"></div></div>
+
+<div class="question-card" id="card_e1q3"><div class="question-top"><div class="question-number">2a</div><div class="question-text">Le tarif de la planche à voile passe de 1200€ à 1350€. La requête suivante a été rejetée. Expliquer pourquoi et proposer la bonne requête :
+<pre><code>INSERT INTO Sport VALUES ("planche à voile","La tramontane catalane",1350);</code></pre></div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e1q3" class="code-editor" data-mode="sql"></textarea></div></div><div class="correction-box" id="corr_e1q3"></div></div>
+
+<div class="question-card" id="card_e1q4"><div class="question-top"><div class="question-number">2b</div><div class="question-text">Une nouvelle station "Soleil Rouge" à Bastia en Corse est référencée. Sport : plongée à 900€. Écrire les requêtes SQL d'insertion.</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e1q4" class="code-editor" data-mode="sql"></textarea></div></div><div class="correction-box" id="corr_e1q4"></div></div>
+
+<div class="question-card" id="card_e1q5"><div class="question-top"><div class="question-number">3a</div><div class="question-text">Écrire une requête SQL pour obtenir l'adresse mail de <strong>tous les clients</strong>.</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e1q5" class="code-editor" data-mode="sql"></textarea></div></div><div class="correction-box" id="corr_e1q5"></div></div>
+
+<div class="question-card" id="card_e1q6"><div class="question-top"><div class="question-number">3b</div><div class="question-text">Écrire une requête SQL pour obtenir le nom de toutes les stations où l'on peut pratiquer la <strong>plongée</strong>.</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e1q6" class="code-editor" data-mode="sql"></textarea></div></div><div class="correction-box" id="corr_e1q6"></div></div>
+
+<div class="question-card" id="card_e1q7"><div class="question-top"><div class="question-number">4a</div><div class="question-text">Écrire une requête SQL pour obtenir le nom des <strong>villes</strong> ainsi que le nom des <strong>stations</strong> où l'on peut pratiquer la plongée (jointure nécessaire).</div><div class="question-points">0.75 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e1q7" class="code-editor" data-mode="sql"></textarea></div></div><div class="correction-box" id="corr_e1q7"></div></div>
+
+<div class="question-card" id="card_e1q8"><div class="question-top"><div class="question-number">4b</div><div class="question-text">Écrire une requête SQL pour déterminer le <strong>nombre total de séjours effectués en Corse durant l'année 2020</strong>.</div><div class="question-points">0.75 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e1q8" class="code-editor" data-mode="sql"></textarea></div></div><div class="correction-box" id="corr_e1q8"></div></div>
+
+<div style="text-align:right;margin-top:8px"><button class="btn btn-primary" onclick="switchTab(1)">Ex. suivant →</button></div>
+</div>
+
+<!-- ===== EXERCICE 2 ===== -->
+<div class="exercise-panel" id="panel1">
+<div class="exercise-header"><h2>Exercice 2 — Réseaux et routage</h2><div class="theme">Réseaux, protocoles RIP et OSPF</div><span class="points-badge">4 points</span></div>
+<div class="context-box">
+<p>Réseau de 7 routeurs (R1-R7). Tables de routage RIP fournies. Les routeurs sont connectés : R1-R2, R1-R4, R2-R3, R3-R4, R4-R5, R4-R6, R4-R7, R5-R6, R6-R7.</p>
+<p><strong>OSPF :</strong> coût = 10⁸ / bande passante. Types : FE(100Mb/s,coût 1), E(10Mb/s,coût 10), E1(2.048Mb/s,coût 49), T1(1.544Mb/s,coût 65).</p>
+<p>Liaisons du réseau: R3-R4(E), R4-R5(E1), R4-R7(FE), R2-R3(T1), R4-R6(E), R1-R4(T1), R1-R2(E1), R5-R6(E), R5-R7(FE), R6-R7(?).</p>
+</div>
+
+<div class="question-card" id="card_e2q1"><div class="question-top"><div class="question-number">1</div><div class="question-text">R2 doit envoyer un paquet à R7, qui en accuse réception. Déterminer le chemin parcouru par le <strong>paquet de données</strong> et celui parcouru par l'<strong>accusé de réception</strong> (protocole RIP).</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q1" placeholder="Paquet: R2 → ... → R7&#10;Accusé: R7 → ... → R2"></textarea></div><div class="correction-box" id="corr_e2q1"></div></div>
+
+<div class="question-card" id="card_e2q2"><div class="question-top"><div class="question-number">2a</div><div class="question-text">Indiquer la <strong>faiblesse</strong> que présente ce réseau en cas de panne du routeur R4.</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q2" placeholder="Faiblesse en cas de panne de R4..."></textarea></div><div class="correction-box" id="corr_e2q2"></div></div>
+
+<div class="question-card" id="card_e2q3"><div class="question-top"><div class="question-number">2b</div><div class="question-text">Proposer une <strong>solution</strong> pour remédier à cette faiblesse.</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q3" placeholder="Solution proposée..."></textarea></div><div class="correction-box" id="corr_e2q3"></div></div>
+
+<div class="question-card" id="card_e2q4"><div class="question-top"><div class="question-number">3a</div><div class="question-text">On ajoute un routeur R8 relié à R2 et R6. Donner une <strong>table de routage pour R8</strong> qui minimise le nombre de sauts.</div><div class="question-points">0.75 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q4" placeholder="Table de routage R8 :&#10;Destination | Lien | Distance&#10;R1 | ... | ...&#10;..." style="min-height:120px"></textarea></div><div class="correction-box" id="corr_e2q4"></div></div>
+
+<div class="question-card" id="card_e2q5"><div class="question-top"><div class="question-number">3b</div><div class="question-text">Donner la <strong>nouvelle table de routage de R2</strong> (avec R8).</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q5" placeholder="Table de routage R2 mise à jour..." style="min-height:120px"></textarea></div><div class="correction-box" id="corr_e2q5"></div></div>
+
+<div class="question-card" id="card_e2q6"><div class="question-top"><div class="question-number">4a</div><div class="question-text"><strong>Sans R8, protocole OSPF.</strong> Déterminer la bande passante du FastEthernet (FE) et justifier que le coût du réseau de type Ethernet (E) est de 10.</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q6" placeholder="BP FastEthernet = ...&#10;Coût Ethernet = ..."></textarea></div><div class="correction-box" id="corr_e2q6"></div></div>
+
+<div class="question-card" id="card_e2q7"><div class="question-top"><div class="question-number">4b</div><div class="question-text">Donner en justifiant le <strong>chemin le moins coûteux pour relier R2 à R5</strong> (OSPF). Préciser le coût.</div><div class="question-points">1 pt</div></div>
+<div class="answer-area"><textarea id="ans_e2q7" placeholder="Chemin R2 → ... → R5, coût = ..." style="min-height:80px"></textarea></div><div class="correction-box" id="corr_e2q7"></div></div>
+
+<div style="display:flex;justify-content:space-between;margin-top:8px"><button class="btn btn-outline" onclick="switchTab(0)">← Précédent</button><button class="btn btn-primary" onclick="switchTab(2)">Suivant →</button></div>
+</div>
+
+<!-- ===== EXERCICE 3 ===== -->
+<div class="exercise-panel" id="panel2">
+<div class="exercise-header"><h2>Exercice 3 — Arbres binaires de recherche</h2><div class="theme">ABR et algorithmes associés</div><span class="points-badge">4 points</span></div>
+<div class="context-box">
+<p>ABR de noms de pays (ordre alphabétique). Convention : hauteur d'un nœud seul = 1.</p>
+<p>Arbre initial : racine "Italie", gauche "France" (gauche "Autriche", droite "Hongrie"), droite "Suede" (gauche "Norvege").</p>
+<p>Fonctions disponibles : <code>est_vide(arb)</code>, <code>racine(arb)</code>, <code>gauche(arb)</code>, <code>droite(arb)</code>.</p>
+</div>
+
+<div class="question-card" id="card_e3q1"><div class="question-top"><div class="question-number">1a</div><div class="question-text">Donner sans justification la <strong>hauteur</strong> de cet arbre.</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><textarea id="ans_e3q1" placeholder="Hauteur = ..."></textarea></div><div class="correction-box" id="corr_e3q1"></div></div>
+
+<div class="question-card" id="card_e3q2"><div class="question-top"><div class="question-number">1b</div><div class="question-text">Donner sans justification la valeur booléenne de l'expression <code>"Allemagne" < "Portugal"</code>.</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><textarea id="ans_e3q2" placeholder="True ou False..."></textarea></div><div class="correction-box" id="corr_e3q2"></div></div>
+
+<div class="question-card" id="card_e3q3"><div class="question-top"><div class="question-number">1c</div><div class="question-text">Recopier l'arbre après l'ajout de <strong>"Allemagne"</strong>, <strong>"Portugal"</strong> et <strong>"Luxembourg"</strong> dans cet ordre. Décrire l'arbre résultant.</div><div class="question-points">0.75 pt</div></div>
+<div class="answer-area"><textarea id="ans_e3q3" placeholder="Décrire l'arbre résultant (nœuds et leurs enfants)..." style="min-height:100px"></textarea></div><div class="correction-box" id="corr_e3q3"></div></div>
+
+<div class="question-card" id="card_e3q4"><div class="question-top"><div class="question-number">2</div><div class="question-text">Indiquer l'ordre de visite des nœuds lors d'un <strong>parcours en largeur</strong> de l'arbre initial (sans Allemagne, Portugal, Luxembourg).</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e3q4" placeholder="Ordre de visite : ..."></textarea></div><div class="correction-box" id="corr_e3q4"></div></div>
+
+<div class="question-card" id="card_e3q5"><div class="question-top"><div class="question-number">3</div><div class="question-text">Compléter les lignes 2, 6, 7 et 10 de la fonction <code>recherche</code> :
+<pre><code>def recherche(arb, val):
+    """..."""
+    if est_vide(arb):
+        return False
+    if val == racine(arb):
+        return ________       # ligne 6
+    if val ________:           # ligne 7
+        return recherche(gauche(arb), val)
+    else:
+        return ________        # ligne 10</code></pre></div><div class="question-points">1 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e3q5" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e3q5"></div></div>
+
+<div class="question-card" id="card_e3q6"><div class="question-top"><div class="question-number">4</div><div class="question-text">Écrire une fonction <strong>récursive</strong> <code>taille</code> qui prend un arbre <code>arb</code> et renvoie le nombre de nœuds (pays) présents dans l'arbre.</div><div class="question-points">1.25 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e3q6" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e3q6"></div></div>
+
+<div style="display:flex;justify-content:space-between;margin-top:8px"><button class="btn btn-outline" onclick="switchTab(1)">← Précédent</button><button class="btn btn-primary" onclick="switchTab(3)">Suivant →</button></div>
+</div>
+
+<!-- ===== EXERCICE 4 ===== -->
+<div class="exercise-panel" id="panel3">
+<div class="exercise-header"><h2>Exercice 4 — Palindromes</h2><div class="theme">Chaînes de caractères, récursivité et programmation Python</div><span class="points-badge">4 points</span></div>
+<div class="context-box">
+<p>Un <strong>palindrome</strong> se lit de la même façon de gauche à droite et de droite à gauche. Ex: "BOB", "LAVAL". Le mot vide "" est un palindrome.</p>
+<pre><code>def palindrome(txt):
+    """Str -> Bool"""
+    ________:               # ligne 3
+    ________                # ligne 4
+    taille = len(txt)
+    interieur = ""
+    for i in range(1, taille - 1):
+        interieur = interieur + txt[i]
+    return (txt[0] == txt[taille - 1]) and (palindrome(interieur))</code></pre>
+<p><strong>Partie 4 — ADN :</strong> Lettres A↔T, G↔C. Complémentaire de "GAATTC" = "CTTAAG". Palindromique si txt + complémentaire(txt) est un palindrome.</p>
+</div>
+
+<div class="question-card" id="card_e4q1"><div class="question-top"><div class="question-number">1a</div><div class="question-text">Choisir la proposition qui complète les lignes 3 et 4 de la fonction <code>palindrome</code> :<br>
+Prop 1: <code>if len(txt) <= 2: return True</code><br>
+Prop 2: <code>if len(txt) < 2: return False</code><br>
+Prop 3: <code>if len(txt) < 2: return True</code><br>
+Prop 4: <code>if len(txt) <= 2: return False</code></div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e4q1" placeholder="Proposition ..."></textarea></div><div class="correction-box" id="corr_e4q1"></div></div>
+
+<div class="question-card" id="card_e4q2"><div class="question-top"><div class="question-number">1b</div><div class="question-text">Lors de l'appel <code>palindrome("bonjour")</code>, indiquer les valeurs de <code>txt[0]</code>, <code>txt[taille-1]</code> et <code>interieur</code> à la ligne 9.</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><textarea id="ans_e4q2" placeholder="txt[0] = ...&#10;txt[taille-1] = ...&#10;interieur = ..."></textarea></div><div class="correction-box" id="corr_e4q2"></div></div>
+
+<div class="question-card" id="card_e4q3"><div class="question-top"><div class="question-number">2</div><div class="question-text">Proposer <strong>deux tests</strong> pour la fonction <code>palindrome</code> permettant de tester deux cas de figure différents. Justifier.</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><textarea id="ans_e4q3" placeholder="Test 1 : palindrome(...) → True car ...&#10;Test 2 : palindrome(...) → False car ..."></textarea></div><div class="correction-box" id="corr_e4q3"></div></div>
+
+<div class="question-card" id="card_e4q4"><div class="question-top"><div class="question-number">3</div><div class="question-text">Écrire une version <strong>non récursive</strong> (itérative) de la fonction <code>palindrome</code>.</div><div class="question-points">1 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e4q4" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e4q4"></div></div>
+
+<div class="question-card" id="card_e4q5"><div class="question-top"><div class="question-number">4a</div><div class="question-text">Écrire une fonction <code>complementaire(txt)</code> qui renvoie la chaîne complémentaire d'une séquence ADN (A↔T, G↔C).<br><em>Ex: <code>complementaire("GAATTC")</code> → <code>"CTTAAG"</code></em></div><div class="question-points">0.75 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e4q5" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e4q5"></div></div>
+
+<div class="question-card" id="card_e4q6"><div class="question-top"><div class="question-number">4b</div><div class="question-text">Déterminer si la chaîne <code>"GATCGT"</code> est <strong>palindromique</strong> (c'est-à-dire si txt + complémentaire(txt) est un palindrome).</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><textarea id="ans_e4q6" placeholder="GATCGT est palindromique / n'est pas palindromique car..."></textarea></div><div class="correction-box" id="corr_e4q6"></div></div>
+
+<div class="question-card" id="card_e4q7"><div class="question-top"><div class="question-number">4c</div><div class="question-text">Écrire une fonction <code>est_palindromique(txt)</code> qui renvoie <code>True</code> si txt est palindromique, <code>False</code> sinon.</div><div class="question-points">0.75 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e4q7" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e4q7"></div></div>
+
+<div style="display:flex;justify-content:space-between;margin-top:8px"><button class="btn btn-outline" onclick="switchTab(2)">← Précédent</button><button class="btn btn-primary" onclick="switchTab(4)">Suivant →</button></div>
+</div>
+
+<!-- ===== EXERCICE 5 ===== -->
+<div class="exercise-panel" id="panel4">
+<div class="exercise-header"><h2>Exercice 5 — Files et températures</h2><div class="theme">Files, tableaux et algorithmes associés</div><span class="points-badge">4 points</span></div>
+<div class="context-box">
+<p>Station météo : données traitées dans l'ordre d'arrivée → <strong>file</strong> (FIFO).</p>
+<p>Primitives : <code>creer_file_vide()</code>, <code>est_vide(F)</code>, <code>enfiler(F, element)</code>, <code>defiler(F)</code>.</p>
+</div>
+
+<div class="question-card" id="card_e5q1"><div class="question-top"><div class="question-number">1a</div><div class="question-text">Températures enfilées : 15, puis 17, puis 14. Quelle proposition représente correctement cette file ?<br>
+Prop 1: [15 17 14] premier=14 | Prop 2: [14 17 15] premier=15<br>
+Prop 3: [15 17 14] premier=15 | Prop 4: [14 17 15] premier=14</div><div class="question-points">0.25 pt</div></div>
+<div class="answer-area"><textarea id="ans_e5q1" placeholder="Proposition ..."></textarea></div><div class="correction-box" id="corr_e5q1"></div></div>
+
+<div class="question-card" id="card_e5q2"><div class="question-top"><div class="question-number">1b</div><div class="question-text">En utilisant les primitives, donner les instructions permettant de <strong>créer cette file</strong> (15, 17, 14).</div><div class="question-points">0.5 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e5q2" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e5q2"></div></div>
+
+<div class="question-card" id="card_e5q3"><div class="question-top"><div class="question-number">2</div><div class="question-text">Compléter la fonction <code>longueur_file(F)</code> qui renvoie le nombre d'éléments et restaure F :
+<pre><code>def longueur_file(F):
+    G = creer_file_vide()
+    n = 0
+    while not(est_vide(F)):
+        ...                    # ligne 6
+    while not(est_vide(G)):    # reconstruction
+        ...                    # ligne 8
+    return ...</code></pre></div><div class="question-points">1 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e5q3" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e5q3"></div></div>
+
+<div class="question-card" id="card_e5q4"><div class="question-top"><div class="question-number">3</div><div class="question-text">Compléter la fonction <code>variations(F)</code> qui renvoie les variations successives de température :
+<pre><code>def variations(F):
+    taille = longueur_file(F)
+    if taille == 1:
+        ...                    # ligne 5
+    else:
+        tab = [0 for k in range(taille - 1)]
+        element1 = defiler(F)
+        for i in range(taille - 1):
+            element2 = defiler(F)
+            ...                # ligne 11
+        return ...</code></pre></div><div class="question-points">1.25 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e5q4" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e5q4"></div></div>
+
+<div class="question-card" id="card_e5q5"><div class="question-top"><div class="question-number">4</div><div class="question-text">Écrire une fonction <code>nombre_baisses(tab)</code> qui prend un tableau de variations et renvoie un p-uplet <code>(nb_baisses, min_baisse)</code>. Si aucune baisse, renvoie <code>(0, 0)</code>.<br><em>Ex: <code>nombre_baisses([1,-4,2,-1,3])</code> → <code>(2,-4)</code></em></div><div class="question-points">1 pt</div></div>
+<div class="answer-area"><div class="code-editor-wrapper"><textarea id="ans_e5q5" class="code-editor" data-mode="python"></textarea></div></div><div class="correction-box" id="corr_e5q5"></div></div>
+
+<div style="text-align:left;margin-top:8px"><button class="btn btn-outline" onclick="switchTab(3)">← Précédent</button></div>
+</div>
+
+<!-- SUBMIT -->
+<div class="submit-section">
+<div style="max-width:440px;margin:0 auto;padding:24px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">
+<h2 style="margin-bottom:6px">📩 Soumettre ma copie</h2>
+<p style="color:var(--text-light);font-size:.82rem;margin-bottom:14px">Les 3 meilleurs exercices seront retenus. Note /12 → /20.</p>
+<button class="btn btn-primary" id="submitBtn" onclick="submitExam()" style="font-size:1rem;padding:12px 34px">📝 Soumettre</button>
+</div></div>
+</div>
+
+<div class="results-overlay" id="resultsOverlay"><div class="results-modal"><h2>📊 Résultats</h2>
+<div class="grade-circle" id="gradeCircle"><span id="gradeNote">--</span><small>/20</small></div>
+<div class="appreciation" id="appreciation">--</div><div class="percentage" id="percentage">--</div>
+<div class="exercise-scores" id="exerciseScores"></div>
+<div class="btn-group"><button class="btn btn-primary" onclick="closeResults()">📋 Correction</button><button class="btn btn-success" onclick="exportPDF()">📄 PDF</button></div>
+</div></div>
+
+<script>
+const examData=[
+{title:"Ex.1 — SQL",points:4,questions:[
+{id:"e1q1",pts:.5,type:"text",answer:"Clé primaire : (nomSport, nomStation). Clé étrangère : nomStation référence Station.nomStation.",keywords:["nomSport","nomStation","clé primaire","cle primaire","primary","couple","étrangère","etrangere","foreign","station"],explanation:"La clé primaire est le couple (nomSport, nomStation) car il identifie de manière unique chaque sport dans chaque station. nomStation est clé étrangère car elle référence la table Station."},
+{id:"e1q2",pts:.5,type:"text",answer:"Domaine : prix est un nombre entier. Relation : chaque couple (nomSport, nomStation) doit être unique. Référence : chaque nomStation doit exister dans Station.",keywords:["domaine","prix","entier","relation","unique","référence","reference","nomStation","station","couple"],explanation:"Les 3 types de contraintes d'intégrité : domaine (type des attributs), relation (unicité de la clé primaire), référence (cohérence des clés étrangères)."},
+{id:"e1q3",pts:.5,type:"code",answer:`-- INSERT rejeté car le couple (nomSport, nomStation) existe déjà
+-- Il faut utiliser UPDATE :
+UPDATE Sport
+SET prix = 1350
+WHERE nomSport = 'planche à voile' AND nomStation = 'La tramontane catalane';`,keywords:["UPDATE","Sport","SET","prix","1350","WHERE","nomSport","planche","voile","nomStation","tramontane","AND","insertion","existe","déjà"],explanation:"On utilise INSERT pour un enregistrement, mais le couple ('planche à voile', 'La tramontane catalane') existe déjà → violation de la clé primaire. Il faut utiliser UPDATE."},
+{id:"e1q4",pts:.5,type:"code",answer:`INSERT INTO Station VALUES ('Soleil Rouge', 'Bastia', 'Corse');
+INSERT INTO Sport VALUES ('plongée', 'Soleil Rouge', 900);`,keywords:["INSERT","INTO","Station","VALUES","Soleil Rouge","Bastia","Corse","Sport","plongée","plongee","900"],explanation:"On insère d'abord la station (car Sport référence Station), puis le sport associé."},
+{id:"e1q5",pts:.25,type:"code",answer:`SELECT mail FROM Client;`,keywords:["SELECT","mail","FROM","Client"],explanation:"Simple sélection de l'attribut mail dans la table Client."},
+{id:"e1q6",pts:.25,type:"code",answer:`SELECT nomStation FROM Sport WHERE nomSport = 'plongée';`,keywords:["SELECT","nomStation","FROM","Sport","WHERE","nomSport","plongée","plongee"],explanation:"On filtre la table Sport pour ne garder que les stations proposant la plongée."},
+{id:"e1q7",pts:.75,type:"code",answer:`SELECT Station.ville, Station.nomStation
+FROM Station
+JOIN Sport ON Station.nomStation = Sport.nomStation
+WHERE Sport.nomSport = 'plongée';`,keywords:["SELECT","ville","nomStation","FROM","Station","JOIN","Sport","ON","Station.nomStation","Sport.nomStation","WHERE","plongée","plongee"],explanation:"Jointure entre Station et Sport sur nomStation, puis filtre sur le sport 'plongée'."},
+{id:"e1q8",pts:.75,type:"code",answer:`SELECT COUNT(*)
+FROM Sejour
+JOIN Station ON Sejour.nomStation = Station.nomStation
+WHERE Station.region = 'Corse' AND Sejour.annee = 2020;`,keywords:["SELECT","COUNT","FROM","Sejour","JOIN","Station","ON","nomStation","WHERE","region","Corse","annee","2020","AND"],explanation:"Jointure Sejour-Station, filtre sur région Corse et année 2020, comptage avec COUNT(*)."}
+]},
+{title:"Ex.2 — Réseaux",points:4,questions:[
+{id:"e2q1",pts:.5,type:"text",answer:"Paquet : R2 → R1 → R4 → R7\nAccusé : R7 → R4 → R3 → R2",keywords:["R2","R1","R4","R7","R3","paquet","accusé","accuse"],explanation:"D'après la table RIP de R2 : pour aller à R7, on passe par R4 (via R1). L'accusé suit le chemin inverse selon les tables RIP respectives."},
+{id:"e2q2",pts:.5,type:"text",answer:"Si R4 tombe en panne, le groupe (R1, R2, R3) ne peut plus communiquer avec le groupe (R5, R6, R7). R4 est un point unique de défaillance.",keywords:["panne","R4","communiquer","isolé","groupe","défaillance","coupé","séparé","atteindre"],explanation:"R4 est le seul routeur connectant les deux groupes. Sa panne isole complètement les deux sous-réseaux."},
+{id:"e2q3",pts:.25,type:"text",answer:"Établir une liaison supplémentaire entre les deux groupes, par exemple entre R1 et R6, ou R2 et R6.",keywords:["liaison","lien","relier","connecter","R1","R6","R2","ajout","redondance"],explanation:"Ajouter un lien direct entre un routeur de chaque groupe crée une redondance et élimine le point unique de défaillance."},
+{id:"e2q4",pts:.75,type:"text",answer:"Table R8 :\nR1→R2,2 | R2→R2,1 | R3→R2,2 | R4→R6,2 | R5→R6,2 | R6→R6,1 | R7→R6,2",keywords:["R2","R6","1","2"],explanation:"R8 est connecté à R2 et R6. Pour chaque destination, on choisit le chemin avec le moins de sauts via R2 ou R6."},
+{id:"e2q5",pts:.5,type:"text",answer:"Table R2 :\nR1→R1,1 | R3→R3,1 | R4→R1,2 | R5→R3,3 | R6→R8,2 | R7→R1,3 | R8→R8,1",keywords:["R8","R1","R3","R6"],explanation:"R2 gagne un voisin (R8). Pour atteindre R6, il est maintenant plus court de passer par R8 (distance 2 au lieu de 3 via R4)."},
+{id:"e2q6",pts:.5,type:"text",answer:"Bande passante FastEthernet = 10⁸ bit/s = 100 Mb/s → coût = 10⁸/10⁸ = 1.\nCoût Ethernet = 10⁸ / 10⁷ = 10.",keywords:["100","Mb","10^8","10^7","10","coût","cout","bande passante","fast"],explanation:"FE : coût = 10⁸/10⁸ = 1, BP = 100 Mb/s. E : coût = 10⁸/(10×10⁶) = 10."},
+{id:"e2q7",pts:1,type:"text",answer:"R2→R3→R4→R7→R6→R5, coût = 65+10+1+1+10 = 87.\nTous les autres chemins ont un coût supérieur (ex: R2→R1→R4→R5 coût = 49+65+49 = 163).",keywords:["R2","R3","R4","R7","R6","R5","87","65","10","1","coût","cout"],explanation:"On calcule la somme des coûts OSPF : T1(65)+E(10)+FE(1)+FE(1)+E(10) = 87. Les autres chemins sont plus coûteux."}
+]},
+{title:"Ex.3 — ABR",points:4,questions:[
+{id:"e3q1",pts:.25,type:"text",answer:"3",keywords:["3"],explanation:"L'arbre a 3 niveaux : Italie (1) → France/Suede (2) → Autriche/Hongrie/Norvege (3)."},
+{id:"e3q2",pts:.25,type:"text",answer:"True",keywords:["true"],explanation:"En ordre alphabétique, 'Allemagne' < 'Portugal' car 'A' < 'P'."},
+{id:"e3q3",pts:.75,type:"text",answer:"Italie → gauche: France (gauche: Autriche (gauche: Allemagne), droite: Hongrie) → droite: Suede (gauche: Norvege (gauche: Luxembourg, droite: Portugal))",keywords:["allemagne","autriche","gauche","luxembourg","norvege","portugal"],explanation:"Allemagne < Autriche → fils gauche d'Autriche. Portugal > Norvege → fils droit de Norvege. Luxembourg < Norvege → fils gauche de Norvege."},
+{id:"e3q4",pts:.5,type:"text",answer:"Italie, France, Suede, Autriche, Hongrie, Norvege",keywords:["italie","france","suede","autriche","hongrie","norvege"],explanation:"Parcours en largeur : on visite niveau par niveau, de gauche à droite."},
+{id:"e3q5",pts:1,type:"code",answer:`def recherche(arb, val):
+    if est_vide(arb):
+        return False
+    if val == racine(arb):
+        return True
+    if val < racine(arb):
+        return recherche(gauche(arb), val)
+    else:
+        return recherche(droite(arb), val)`,keywords:["recherche","return True","val < racine","racine(arb)","recherche(gauche","recherche(droite","recherche(droit"],explanation:"Ligne 6: return True. Ligne 7: val < racine(arb). Ligne 10: return recherche(droite(arb), val)."},
+{id:"e3q6",pts:1.25,type:"code",answer:`def taille(arb):
+    if est_vide(arb):
+        return 0
+    else:
+        return 1 + taille(gauche(arb)) + taille(droite(arb))`,keywords:["taille","est_vide","return 0","return 1","taille(gauche","taille(droite","taille(droit"],explanation:"Cas de base : arbre vide → 0. Sinon : 1 (la racine) + taille du sous-arbre gauche + taille du sous-arbre droit."}
+]},
+{title:"Ex.4 — Palindromes",points:4,questions:[
+{id:"e4q1",pts:.5,type:"text",answer:"Proposition 3 : if len(txt) < 2: return True",keywords:["3","proposition 3","prop 3"],explanation:"Un mot de 0 ou 1 caractère est toujours un palindrome → return True quand len(txt) < 2."},
+{id:"e4q2",pts:.25,type:"text",answer:"txt[0] = 'b'\ntxt[taille-1] = 'r'\ninterieur = 'onjou'",keywords:["b","r","onjou"],explanation:"Pour 'bonjour' : premier caractère = 'b', dernier = 'r', intérieur = caractères de l'indice 1 à 5 = 'onjou'."},
+{id:"e4q3",pts:.5,type:"text",answer:"Test True : palindrome('BOB') → True (palindrome).\nTest False : palindrome('BONJOUR') → False (pas palindrome).",keywords:["true","false","bob","bonjour","test","palindrome"],explanation:"On teste un cas positif (mot palindrome) et un cas négatif (mot non palindrome) pour vérifier les deux branches."},
+{id:"e4q4",pts:1,type:"code",answer:`def palindrome(txt):
+    taille = len(txt)
+    if taille < 2:
+        return True
+    i = 0
+    j = taille - 1
+    while i < j:
+        if txt[i] != txt[j]:
+            return False
+        i = i + 1
+        j = j - 1
+    return True`,keywords:["palindrome","while","txt[i]","txt[j]","!=","return False","return True","i","j","taille"],explanation:"On compare les caractères aux deux extrémités en se rapprochant du centre. Si une paire ne correspond pas, ce n'est pas un palindrome."},
+{id:"e4q5",pts:.75,type:"code",answer:`def complementaire(txt):
+    c = ""
+    for l in txt:
+        if l == "A":
+            c = c + "T"
+        elif l == "T":
+            c = c + "A"
+        elif l == "G":
+            c = c + "C"
+        elif l == "C":
+            c = c + "G"
+    return c`,keywords:["complementaire","for","A","T","G","C","return"],explanation:"On parcourt chaque lettre et on la remplace par sa complémentaire : A↔T, G↔C."},
+{id:"e4q6",pts:.25,type:"text",answer:"GATCGT n'est pas palindromique car GATCGT + CTAGCA = GATCGTCTAGCA qui n'est pas un palindrome.",keywords:["non","pas","palindromique","n'est pas"],explanation:"Le complémentaire de GATCGT est CTAGCA. La concaténation GATCGTCTAGCA n'est pas un palindrome."},
+{id:"e4q7",pts:.75,type:"code",answer:`def est_palindromique(txt):
+    comp = complementaire(txt)
+    conc = txt + comp
+    return palindrome(conc)`,keywords:["est_palindromique","complementaire","txt","comp","conc","+","palindrome","return"],explanation:"On calcule le complémentaire, on concatène avec l'original, et on vérifie si le résultat est un palindrome."}
+]},
+{title:"Ex.5 — Files",points:4,questions:[
+{id:"e5q1",pts:.25,type:"text",answer:"Proposition 2",keywords:["2","proposition 2","prop 2"],explanation:"FIFO : premier enfilé (15), premier sorti. L'entrée est à gauche (14, le dernier enfilé), la sortie à droite (15, le premier enfilé)."},
+{id:"e5q2",pts:.5,type:"code",answer:`f = creer_file_vide()
+enfiler(f, 15)
+enfiler(f, 17)
+enfiler(f, 14)`,keywords:["creer_file_vide","enfiler","f","15","17","14"],explanation:"On crée une file vide, puis on enfile les 3 températures dans l'ordre d'arrivée."},
+{id:"e5q3",pts:1,type:"code",answer:`def longueur_file(F):
+    G = creer_file_vide()
+    n = 0
+    while not(est_vide(F)):
+        v = defiler(F)
+        n = n + 1
+        enfiler(G, v)
+    while not(est_vide(G)):
+        v = defiler(G)
+        enfiler(F, v)
+    return n`,keywords:["longueur_file","defiler","enfiler","n","n + 1","n +=","creer_file_vide","G","return n"],explanation:"On défile tous les éléments dans une file temporaire G en comptant, puis on reconstruit F à partir de G."},
+{id:"e5q4",pts:1.25,type:"code",answer:`def variations(F):
+    taille = longueur_file(F)
+    if taille == 1:
+        return []
+    else:
+        tab = [0 for k in range(taille - 1)]
+        element1 = defiler(F)
+        for i in range(taille - 1):
+            element2 = defiler(F)
+            tab[i] = element2 - element1
+            element1 = element2
+        return tab`,keywords:["variations","return []","tab","element2","element1","defiler","element2 - element1","return tab"],explanation:"Ligne 5: return []. Ligne 11: tab[i] = element2 - element1 puis element1 = element2. On calcule les différences successives."},
+{id:"e5q5",pts:1,type:"code",answer:`def nombre_baisses(tab):
+    mini = tab[0]
+    nbr = 0
+    for v in tab:
+        if v < 0:
+            nbr = nbr + 1
+        if v < mini:
+            mini = v
+    if nbr == 0:
+        return (0, 0)
+    else:
+        return (nbr, mini)`,keywords:["nombre_baisses","mini","nbr","< 0","nbr + 1","nbr +=","< mini","return","(0, 0)","(0,0)","(nbr","mini)"],explanation:"On parcourt le tableau, on compte les valeurs négatives et on trouve la plus petite. Si aucune baisse, on renvoie (0,0)."}
+]}];
+
+let editors={},timerInterval,remainingSeconds=3*3600+30*60,isSubmitted=false;
+const SK='nsi_2022_s04';
+document.addEventListener('DOMContentLoaded',()=>{initEditors();loadState();startTimer();setInterval(autoSave,30000)});
+function initEditors(){document.querySelectorAll('.code-editor').forEach(ta=>{const m=ta.dataset.mode||'python';const cm=CodeMirror.fromTextArea(ta,{mode:m==='sql'?'text/x-sql':'python',theme:'dracula',lineNumbers:true,indentUnit:4,tabSize:4,indentWithTabs:false,lineWrapping:true,matchBrackets:true,extraKeys:{"Tab":cm=>{cm.replaceSelection("    ","end")}}});editors[ta.id]=cm;cm.setSize(null,'auto');cm.on('change',()=>cm.setSize(null,'auto'))})}
+function startTimer(){updateTimer();timerInterval=setInterval(()=>{if(isSubmitted){clearInterval(timerInterval);return}remainingSeconds--;if(remainingSeconds<=0){remainingSeconds=0;clearInterval(timerInterval);submitExam()}updateTimer()},1000)}
+function updateTimer(){const h=Math.floor(remainingSeconds/3600),m=Math.floor((remainingSeconds%3600)/60),s=remainingSeconds%60;document.getElementById('timerDisplay').textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;const b=document.getElementById('timerBox');b.classList.remove('warning','danger');if(remainingSeconds<600)b.classList.add('danger');else if(remainingSeconds<1800)b.classList.add('warning')}
+function switchTab(i){document.querySelectorAll('.exercise-panel').forEach((p,j)=>p.classList.toggle('active',j===i));document.querySelectorAll('.nav-tab').forEach((t,j)=>t.classList.toggle('active',j===i));window.scrollTo({top:0,behavior:'smooth'})}
+function autoSave(){if(isSubmitted)return;const d={time:remainingSeconds,ans:{}};examData.forEach(ex=>ex.questions.forEach(q=>{if(editors[`ans_${q.id}`])d.ans[q.id]=editors[`ans_${q.id}`].getValue();else{const el=document.getElementById(`ans_${q.id}`);if(el)d.ans[q.id]=el.value}}));localStorage.setItem(SK,JSON.stringify(d));document.getElementById('saveIndicator').innerHTML='<span class="dot" style="background:#00b894"></span> Sauvé '+new Date().toLocaleTimeString()}
+function loadState(){const r=localStorage.getItem(SK);if(!r)return;try{const d=JSON.parse(r);if(d.time)remainingSeconds=d.time;updateTimer();if(d.ans)Object.keys(d.ans).forEach(q=>{if(editors[`ans_${q}`])editors[`ans_${q}`].setValue(d.ans[q]);else{const el=document.getElementById(`ans_${q}`);if(el)el.value=d.ans[q]}})}catch(e){}}
+function resetExam(){if(!confirm('⚠️ Réinitialiser ?'))return;localStorage.removeItem(SK);location.reload()}
+function getAns(q){if(editors[`ans_${q}`])return editors[`ans_${q}`].getValue().trim();const el=document.getElementById(`ans_${q}`);return el?el.value.trim():''}
+function norm(s){return s.toLowerCase().replace(/[''"`]/g,"'").replace(/\s+/g,' ').replace(/[àâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[îï]/g,'i').replace(/[ôö]/g,'o').replace(/[ùûü]/g,'u').replace(/ç/g,'c').trim()}
+function grade(q){const a=getAns(q.id);if(!a)return{score:0,max:q.pts,correct:false};const na=norm(a);let m=0;const kw=q.keywords.map(k=>norm(k));kw.forEach(k=>{if(na.includes(k))m++});const r=m/kw.length;let sc;if(r>=.65)sc=q.pts;else if(r>=.4)sc=q.pts*.5;else if(r>=.2)sc=q.pts*.25;else sc=0;sc=Math.round(sc*4)/4;return{score:sc,max:q.pts,correct:sc>=q.pts*.6}}
+function submitExam(){if(isSubmitted)return;if(!confirm('📝 Soumettre ? Les 3 meilleurs exercices seront retenus.'))return;isSubmitted=true;clearInterval(timerInterval);document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent='✅ Soumis';document.querySelectorAll('.answer-area textarea').forEach(t=>t.readOnly=true);Object.values(editors).forEach(cm=>cm.setOption('readOnly',true));document.querySelectorAll('.question-card').forEach(c=>c.classList.add('locked'));
+let exScores=[];examData.forEach((ex,ei)=>{let xs=0,xm=0;ex.questions.forEach(q=>{const r=grade(q);xs+=r.score;xm+=r.max;showCorr(q,r)});exScores.push({title:ex.title,score:xs,max:xm,idx:ei});const tab=document.querySelector(`.nav-tab[data-tab="${ei}"] .badge`);if(tab){tab.textContent=`${xs.toFixed(1)}/${xm}`}});
+// Best 3
+exScores.sort((a,b)=>b.score-a.score);
+const best3=exScores.slice(0,3);
+const totalScore=best3.reduce((s,e)=>s+e.score,0);
+const totalMax=best3.reduce((s,e)=>s+e.max,0);
+best3.forEach(e=>{const tab=document.querySelector(`.nav-tab[data-tab="${e.idx}"]`);if(tab&&e.score>=e.max*.6)tab.classList.add('done')});
+showResults(totalScore,totalMax,exScores)}
+function showCorr(q,r){const card=document.getElementById(`card_${q.id}`),corr=document.getElementById(`corr_${q.id}`);if(!card||!corr)return;card.classList.add(r.correct?'correct':'incorrect');const icon=r.correct?'✅ Correct':(r.score>0?'⚠️ Partiel':'❌ Incorrect');corr.className=`correction-box show ${r.correct?'correct-box':'incorrect-box'}`;corr.innerHTML=`<div class="result-icon">${icon} — ${r.score}/${r.max}pt</div><h4>📌 Attendu:</h4><div class="expected">${esc(q.answer)}</div><div class="explanation">💡 ${q.explanation}</div>`}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function showResults(total,max,all){const note=Math.round((total/max)*20*4)/4,pct=Math.round((total/max)*100);let ap,gc;if(note>=16){ap='🏆 Excellent';gc='grade-excellent'}else if(note>=14){ap='👏 Bien';gc='grade-bien'}else if(note>=12){ap='👍 Assez bien';gc='grade-assez-bien'}else if(note>=10){ap='✊ Passable';gc='grade-passable'}else{ap='📚 Insuffisant';gc='grade-insuffisant'}document.getElementById('gradeCircle').className=`grade-circle ${gc}`;document.getElementById('gradeNote').textContent=note.toFixed(2);document.getElementById('appreciation').textContent=ap;document.getElementById('percentage').textContent=`${pct}% — Best 3: ${total.toFixed(2)}/${max}pts → ${note.toFixed(2)}/20`;
+let h='';all.sort((a,b)=>a.idx-b.idx);all.forEach(e=>{const p=Math.round((e.score/e.max)*100),c=p>=60?'#00b894':p>=30?'#fdcb6e':'#d63031';h+=`<div class="score-row"><div><strong>${e.title}</strong><div class="progress-bar"><div class="fill" style="width:${p}%;background:${c}"></div></div></div><div style="font-weight:700;color:${c}">${e.score.toFixed(2)}/${e.max}</div></div>`});document.getElementById('exerciseScores').innerHTML=h;document.getElementById('resultsOverlay').classList.add('show')}
+function closeResults(){document.getElementById('resultsOverlay').classList.remove('show');switchTab(0)}
+function exportPDF(){closeResults();document.querySelectorAll('.exercise-panel').forEach(p=>p.style.display='block');html2pdf().set({margin:7,filename:'NSI_2022_Copie.pdf',image:{type:'jpeg',quality:.9},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(document.getElementById('mainContainer')).save().then(()=>document.querySelectorAll('.exercise-panel').forEach(p=>p.style.display=''))}
+</script>
+</body>
+</html>
